@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kernel Memory Allocation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background-size: cover; /* Cover the entire viewport */
+            background-attachment: fixed; /* Fix the background */
+            background-image: url('https://images.pexels.com/photos/1679719/pexels-photo-1679719.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'); 
+        }
+        h1 {
+            font-size: 28px;
+            color: #006eff;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+        .container {
+            background-color: #ffffff2f;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 700px;
+            max-width: 100%;
+        }
+        h2 {
+            font-size: 24px;
+            color: #1e3a5e;
+            margin-bottom: 20px;
+        }
+        ul {
+            list-style-type: disc;
+            padding-left: 20px;
+            color: #ffffff;
+        }
+        form {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 300px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input[type="number"], input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #357abd;
+        }
+        .memory {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+            border: 2px solid #4a90e2;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .partition {
+            text-align: center;
+            position: relative;
+            padding: 10px 0;
+            overflow: hidden;
+            transition: background-color 0.3s, height 0.3s, transform 0.3s ease-in-out;
+        }
+        .allocated, .free {
+            border-bottom: 1px solid #ccc;
+        }
+        .allocated {
+            background-color: #8bc34a;
+            color: #333;
+        }
+        .free {
+            background-color: #e0e0e0;
+            color: #555;
+        }
+        .highlight {
+            background-color: #ffeb3b !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center;">Memory Allocation Algorithm</h1>
+        <p style="text-align: justify;">DragonflyBSD uses a algorithm for allocating kernel memory is known as slab allocation. It eliminates fragmentation caused by allocations and deallocations. This method is used to retain allocated memory that contains a data object of a certain type for reuse upon subsequent allocations of objects of the same type. In slab allocation, memory chunks suitable to fit data objects of a certain type or size are preallocated. The cache does not free the space immediately after use, although it keeps track of data which are required frequently so that whenever a request is made, the data will reach very fast.</p>
+        <p>Two terms required are:</p>
+        <ul>
+            <li><strong>Slab</strong> – A slab is made up of one or more physically contiguous pages. The slab is the actual container of data associated with objects of the specific kind of the containing cache.</li>
+            <li><strong>Cache</strong> – Cache represents a small amount of very fast memory. A cache consists of one or more slabs. There is a single cache for each unique kernel data structure.</li>
+        </ul>
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+            <img src="https://media.geeksforgeeks.org/wp-content/cdn-uploads/12-3.jpg" alt="Description of Image" style="max-width: 100%; height: auto;">
+          </div>
+        <p style="font-family:Verdana, Geneva, Tahoma, sans-serif;">BUT THE SLAB ALLOCATION ALGORITHM IS MAINLY BASED ON FIRST-FIT ALGORIHTM SO LETS SEE ITS VISUAL IMPLEMENTATION OF FIRST-FIT</p>
+    </div>
+        <p style="font-family:Verdana, Geneva, Tahoma, sans-serif;">BUT THE SLAB ALLOCATION ALGORITHM IS MAINLY BASED ON FIRST-FIT ALGORIHTM SO LETS SEE ITS VISUAL IMPLEMENTATION OF FIRST-FIT</p>
+    </div>
+
+    <h2>Memory Allocation Technique</h2>
+
+    <form id="memoryForm">
+        <label for="memorySize">Total Memory Size:</label>
+        <input type="number" id="memorySize" required>
+        <br>
+        <label for="divisions">Divisions (comma separated):</label>
+        <input type="text" id="divisions" placeholder="e.g., 100, 200, 300" required>
+        <br>
+        <button type="submit">Initialize Memory</button>
+    </form>
+
+    <form id="allocationForm" style="display:none;">
+        <label for="allocation">Allocate Memory Size:</label>
+        <input type="number" id="allocation" placeholder="e.g., 50" required>
+        <button type="submit">Allocate</button>
+    </form>
+
+    <button id="clearButton" style="display:none;">Clear Allocations</button>
+
+    <div id="memoryContainer" class="memory"></div>
+
+    <script>
+        let partitions = [];
+
+        document.getElementById('memoryForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const memorySize = parseInt(document.getElementById('memorySize').value);
+            const divisions = document.getElementById('divisions').value.split(',').map(Number);
+            const memoryContainer = document.getElementById('memoryContainer');
+            memoryContainer.innerHTML = '';
+
+            partitions = divisions.map(size => ({
+                size: size,
+                allocated: false,
+                allocatedSize: 0,
+                element: null
+            }));
+
+            partitions.forEach(partition => {
+                const div = document.createElement('div');
+                div.className = 'partition free';
+                div.style.height = (partition.size / memorySize) * 100 + '%';
+                div.textContent = `Free: ${partition.size}`;
+                memoryContainer.appendChild(div);
+                partition.element = div;
+            });
+
+            document.getElementById('allocationForm').style.display = 'block';
+            document.getElementById('clearButton').style.display = 'block';
+        });
+
+        document.getElementById('allocationForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const request = parseInt(document.getElementById('allocation').value);
+            document.getElementById('allocation').value = '';
+
+            let allocated = false;
+            partitions.forEach(partition => {
+                if (!partition.allocated && partition.size >= request && !allocated) {
+                    partition.allocated = true;
+                    partition.allocatedSize = request;
+                    const div = partition.element;
+                    div.classList.remove('free');
+                    div.classList.add('allocated');
+                    const remainingSpace = partition.size - request;
+                    div.textContent = `Allocated: ${request}, Free: ${remainingSpace}`;
+                    div.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        div.style.transform = 'scale(1)';
+                    }, 300);
+                    allocated = true;
+                }
+            });
+
+            if (!allocated) {
+                alert(`Request of size ${request} could not be allocated`);
+            }
+        });
+
+        document.getElementById('clearButton').addEventListener('click', function() {
+            const memoryContainer = document.getElementById('memoryContainer');
+            memoryContainer.innerHTML = '';
+            document.getElementById('memoryForm').reset();
+            document.getElementById('allocationForm').style.display = 'none';
+            document.getElementById('clearButton').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

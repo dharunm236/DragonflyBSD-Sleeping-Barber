@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multilevel Feedback Queue Scheduling</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #8a8a8a;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2, h3 {
+            color: #333;
+        }
+
+        p {
+            margin-bottom: 20px;
+            line-height: 1.6;
+            color: black;
+        }
+
+        .theory {
+            margin-bottom: 40px;
+            color: rgb(0, 66, 128);
+        }
+
+        .implementation {
+            margin-top: 40px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        input {
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background-color: #187dcf;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #0e72b4;
+        }
+
+        .gantt {
+            display: flex;
+            flex-wrap: nowrap;
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        .gantt .bar {
+            padding: 10px;
+            background-color: #1a86ec;
+            color: white;
+            text-align: center;
+            margin-right: 2px;
+            border-radius: 5px;
+        }
+
+        .theory img {
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="theory">
+            <h2>Theory: Multilevel Feedback Queue Scheduling</h2>
+            <p>The Multilevel Feedback Queue (MLFQ) scheduler is a versatile and widely used scheduling algorithm in modern operating systems. Here's an overview of how the MLFQ scheduler works:</p>
+            <ol>
+                <li><strong>Multiple Queues:</strong> The MLFQ scheduler maintains multiple queues, each representing a different priority level. Higher-priority queues have shorter time slices, while lower-priority queues have longer time slices.</li>
+                <li><strong>Dynamic Priority Adjustment:</strong> Processes are initially placed into the highest priority queue. As a process consumes its time quantum without blocking, it is demoted to a lower-priority queue. Conversely, if a process blocks or voluntarily yields the CPU before exhausting its time quantum, it is promoted to a higher-priority queue.</li>
+                <li><strong>Aging Mechanism:</strong> To prevent starvation of low-priority processes, the MLFQ scheduler employs an aging mechanism. This mechanism gradually increases the priority of processes waiting in lower-priority queues, ensuring that they eventually get a chance to execute.</li>
+                <li><strong>Preemption:</strong> The MLFQ scheduler supports preemption, allowing higher-priority processes to preempt lower-priority ones when they become runnable. This ensures that critical tasks can execute promptly without unnecessary delays.</li>
+                <li><strong>I/O Bound vs. CPU Bound Differentiation:</strong> MLFQ schedulers often differentiate between I/O-bound and CPU-bound processes. I/O-bound processes are more likely to be promoted to higher-priority queues since they tend to block frequently, while CPU-bound processes are more likely to be demoted since they consume their time slices without blocking.</li>
+                <li><strong>Quantum Adjustment:</strong> Some MLFQ implementations dynamically adjust the time quantum assigned to each queue based on factors such as process behavior and system load. This adaptive approach helps optimize system performance under varying workloads.</li>
+            </ol>
+            <p>The MLFQ scheduler strikes a balance between providing low-latency response for interactive tasks and maximizing overall system throughput by efficiently utilizing CPU resources.</p>
+            <img src="https://media.geeksforgeeks.org/wp-content/uploads/Multilevel-Feedback-Queue-Scheduling-300x269.png" alt="Multilevel Feedback Queue Scheduling">
+        </div>
+
+        <div class="implementation">
+            <h2>Implementation: Multilevel Feedback Queue Scheduling</h2>
+            <div>
+                <label for="numProcesses">Number of Processes: </label>
+                <input type="number" id="numProcesses" min="1" max="10" value="3">
+                <button class="btn" onclick="generateInputFields()">Generate Input Fields</button>
+            </div>
+            <div id="inputFields"></div>
+            <button class="btn" onclick="calculateScheduling()">Calculate Scheduling</button>
+            <table id="resultTable">
+                <thead>
+                    <tr>
+                        <th>Process Number</th>
+                        <th>Arrival Time</th>
+                        <th>Burst Time</th>
+                        <th>Waiting Time</th>
+                        <th>Turnaround Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <div id="ganttChart" class="gantt"></div>
+        </div>
+    </div>
+
+    <script>
+        function generateInputFields() {
+            const numProcesses = document.getElementById('numProcesses').value;
+            const inputFieldsDiv = document.getElementById('inputFields');
+            inputFieldsDiv.innerHTML = '';
+
+            for (let i = 0; i < numProcesses; i++) {
+                const fieldset = document.createElement('fieldset');
+                fieldset.innerHTML = `
+                    <legend>Process ${i + 1}</legend>
+                    <label for="arrivalTime${i}">Arrival Time: </label>
+                    <input type="number" id="arrivalTime${i}" min="0" required>
+                    <label for="burstTime${i}">Burst Time: </label>
+                    <input type="number" id="burstTime${i}" min="1" required>
+                `;
+                inputFieldsDiv.appendChild(fieldset);
+            }
+        }
+
+        function calculateScheduling() {
+            const numProcesses = document.getElementById('numProcesses').value;
+            const processes = [];
+            for (let i = 0; i < numProcesses; i++) {
+                const arrivalTime = parseInt(document.getElementById(`arrivalTime${i}`).value);
+                const burstTime = parseInt(document.getElementById(`burstTime${i}`).value);
+                processes.push({ id: i + 1, arrivalTime, burstTime, remainingTime: burstTime });
+            }
+
+            const resultTableBody = document.querySelector('#resultTable tbody');
+            resultTableBody.innerHTML = '';
+            const timeQuantum = 4;
+            const queues = [[], [], []];
+            let currentTime = 0;
+            let completed = 0;
+            let waitingTime = Array(numProcesses).fill(0);
+            let turnaroundTime = Array(numProcesses).fill(0);
+            let ganttChart = [];
+
+            processes.sort((a, b) => a.arrivalTime - b.arrivalTime);
+
+            while (completed < numProcesses) {
+                processes.forEach(process => {
+                    if (process.arrivalTime <= currentTime && process.remainingTime > 0 && !queues[0].includes(process) && !queues[1].includes(process) && !queues[2].includes(process)) {
+                        queues[0].push(process);
+                    }
+                });
+
+                let found = false;
+                for (let i = 0; i < 3; i++) {
+                    if (queues[i].length > 0) {
+                        const currentProcess = queues[i].shift();
+                        const executionTime = Math.min(currentProcess.remainingTime, timeQuantum * (i + 1));
+                        currentProcess.remainingTime -= executionTime;
+                        ganttChart.push({ processId: currentProcess.id, start: currentTime, duration: executionTime });
+                        currentTime += executionTime;
+
+                        processes.forEach(process => {
+                            if (process !== currentProcess && process.remainingTime > 0 && process.arrivalTime <= currentTime) {
+                                waitingTime[process.id - 1] += currentTime - process.arrivalTime; // Corrected waiting time calculation
+                            }
+                        });
+
+                        if (currentProcess.remainingTime > 0) {
+                            if (i < 2) {
+                                queues[i + 1].push(currentProcess);
+                            } else {
+                                queues[i].push(currentProcess);
+                            }
+                        } else {
+                            completed++;
+                            turnaroundTime[currentProcess.id - 1] = currentTime - currentProcess.arrivalTime;
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found) {
+                    currentTime++;
+                }
+            }
+
+            for (let i = 0; i < numProcesses; i++) {
+                const process = processes.find(p => p.id === i + 1);
+                const row = resultTableBody.insertRow();
+                row.insertCell(0).textContent = process.id;
+                row.insertCell(1).textContent = process.arrivalTime;
+                row.insertCell(2).textContent = process.burstTime;
+                row.insertCell(3).textContent = waitingTime[i];
+                row.insertCell(4).textContent = turnaroundTime[i];
+            }
+
+            renderGanttChart(ganttChart);
+        }
+
+        function renderGanttChart(ganttChart) {
+            const ganttChartDiv = document.getElementById('ganttChart');
+            ganttChartDiv.innerHTML = '';
+
+            ganttChart.forEach(segment => {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.flexBasis = `${segment.duration * 30}px`; // Adjust scale factor as needed
+                bar.textContent = `P${segment.processId} (${segment.start}-${segment.start + segment.duration})`;
+                ganttChartDiv.appendChild(bar);
+            });
+        }
+    </script>
+</body>
+</html>
